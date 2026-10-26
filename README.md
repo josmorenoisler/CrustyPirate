@@ -15,10 +15,16 @@
 > This is a project solely for learning and training purposes. Done with PaperZD.
 >
 <h3 align="center">Some screenshots</h3>
+
 ![Constructing the level via TileMap](/images/TileMapConstruction.png)
+
 ![Captain State Machine](/images/CaptainStateMachine.png)
+
 ![Captain Animation Source](/images/CaptainAnimationSource.png)
+
 ![Being Hit](/images/BeingHit.png)
+
 ![Enemy Killing](/images/EnemyKill.png)
+
 ![CrustyPirate - Unreal Editor](/images/CrustyPirate - Unreal Editor.png)
 
