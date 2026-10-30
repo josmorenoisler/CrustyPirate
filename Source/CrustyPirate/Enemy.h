@@ -4,17 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "PaperZDCharacter.h"
-#include "Components/SphereComponent.h"
-#include "PlayerCharacter.h"
-#include "Components/TextRenderComponent.h"
 #include "PaperZDAnimInstance.h"
 #include "Engine/TimerHandle.h"
-#include "Components/BoxComponent.h"
 
 #include "Enemy.generated.h"
 
+class USphereComponent;
+class UTextRenderComponent;
+class UBoxComponent;
+class UPaperZDAnimSequence;
+class APlayerCharacter;
+
 /**
- * 
+ *
  */
 UCLASS()
 class CRUSTYPIRATE_API AEnemy : public APaperZDCharacter
@@ -22,46 +24,62 @@ class CRUSTYPIRATE_API AEnemy : public APaperZDCharacter
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	USphereComponent* PlayerDetectionSphere;
+	AEnemy();
+	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UTextRenderComponent* HPText;
+	void TakeHit(int32 DamageAmount, float StunDuration);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	APlayerCharacter* FollowTarget;
+	UFUNCTION(BlueprintCallable)
+	void EnableAttackCollisionBox(bool bEnabled);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UPaperZDAnimSequence* AttackAnimSeq;
+protected:
+	virtual void BeginPlay() override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UBoxComponent* AttackCollisionBox;
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USphereComponent> PlayerDetectionSphere;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTextRenderComponent> HPText;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<APlayerCharacter> FollowTarget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UPaperZDAnimSequence> AttackAnimSeq;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UBoxComponent> AttackCollisionBox;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	float StopDistToTarget = 70.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	float AttackCDInSecs = 3.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int HitPoints = 100;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	int32 HitPoints = 100;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int AttackDamage = 25;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	int32 AttackDamage = 25;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	float AttackStunDuration = 0.3f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	// Seconds the body stays in the level after dying, so the death animation can finish
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	float DeathLifeSpanInSecs = 3.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bIsAlive = true;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bCanMove = true;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bIsStunned = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bCanAttack = true;
 
 	FTimerHandle StunTimer;
@@ -69,20 +87,15 @@ public:
 
 	FZDOnAnimationOverrideEndSignature OnAttackOverrideEndDelegate;
 
-	AEnemy();
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
-
 	UFUNCTION()
 	void DetectorOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
 	void DetectorOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	bool ShouldMoveToTarget();
+	bool ShouldMoveToTarget() const;
 	void UpdateDirectionEnemy(float MoveDirection);
-	void UpdateHP(int NewHp);
-	void TakeDamage(int DamageAmount, float StunDuration);
+	void UpdateHP(int32 NewHp);
 	void Stun(float DurationInSeconds);
 	void OnStunTimerTimeout();
 
@@ -92,7 +105,4 @@ public:
 
 	UFUNCTION()
 	void AttackBoxOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION(BlueprintCallable)
-	void EnableAttackCollisionBox(bool bEnabled);
 };

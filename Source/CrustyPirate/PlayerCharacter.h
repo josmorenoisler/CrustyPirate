@@ -4,27 +4,26 @@
 
 #include "CoreMinimal.h"
 #include "PaperZDCharacter.h"
-#include "Camera/CameraComponent.h"
-#include "GameFramework/SpringArmComponent.h"
-
-#include "EnhancedInputComponent.h"
-#include "EnhancedInputSubsystems.h"
-#include "Components/InputComponent.h"
-#include "InputActionValue.h"
-#include "GameFramework/Controller.h"
 #include "Engine/TimerHandle.h"
-#include "Components/BoxComponent.h"
-#include "PlayerHUD.h"
-#include "CrustyPirateGameInstance.h"
-#include "Sound/SoundBase.h"
 #include "CollectableItem.h"
 
 #include "PaperZDAnimInstance.h"
 
 #include "PlayerCharacter.generated.h"
 
+class USpringArmComponent;
+class UCameraComponent;
+class UBoxComponent;
+class UInputMappingContext;
+class UInputAction;
+class USoundBase;
+class UPaperZDAnimSequence;
+class UPlayerHUD;
+class UCrustyPirateGameInstance;
+struct FInputActionValue;
+
 /**
- * 
+ *
  */
 UCLASS()
 class CRUSTYPIRATE_API APlayerCharacter : public APaperZDCharacter
@@ -32,98 +31,105 @@ class CRUSTYPIRATE_API APlayerCharacter : public APaperZDCharacter
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	USpringArmComponent* SpringArmComponent;
+	APlayerCharacter();
+	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UCameraComponent* CameraComponent;
+	bool IsAlive() const { return bIsAlive; }
+	bool IsActive() const { return bIsActive; }
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UBoxComponent* AttackCollisionBox;
+	void TakeHit(int32 DamageAmount, float StunDuration);
+	void CollectItem(CollectableType ItemType);
+	void DeactivatePlayer();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UInputMappingContext* InputMappingContext;
+	UFUNCTION(BlueprintCallable)
+	void EnableAttackCollisionBox(bool bEnabled);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UInputAction* MoveAction;
+protected:
+	virtual void BeginPlay() override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UInputAction* JumpAction;
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USpringArmComponent> SpringArmComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UInputAction* AttackAction;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCameraComponent> CameraComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UInputAction* QuitAction;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UBoxComponent> AttackCollisionBox;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	USoundBase* ItemPickUpSound;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputMappingContext> InputMappingContext;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UPaperZDAnimSequence* AttackAnimSeq;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> MoveAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> JumpAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> AttackAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> QuitAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> ItemPickUpSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UPaperZDAnimSequence> AttackAnimSeq;
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UPlayerHUD> PlayerHUDClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UPlayerHUD* PlayerHUDWidget;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UPlayerHUD> PlayerHUDWidget;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UCrustyPirateGameInstance* MyGameInstance;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCrustyPirateGameInstance> MyGameInstance;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bIsActive = true;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bIsAlive = true;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bCanMove = true;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bCanAttack = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int AttackDamage = 25;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	int32 AttackDamage = 25;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	int HitPoints = 100;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	int32 HitPoints = 100;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	float AttackStunDuration = 0.3f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bIsStunned = false;
 
 	FTimerHandle PlayerStunTimer;
 	FTimerHandle RestartTimer;
 	FZDOnAnimationOverrideEndSignature OnAttackOverrideEndDelegate;
 
-	APlayerCharacter();
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-
 	void Move(const FInputActionValue& value);
 	void JumpStart(const FInputActionValue& value);
 	void JumpEnd(const FInputActionValue& value);
 	void Attack(const FInputActionValue& value);
-	void UpdateHP(int NewHp);
-	void TakeDamage(int DamageAmount, float StunDuration);
+	void UpdateHP(int32 NewHp);
 	void Stun(float DurationInSeconds);
 	void OnStunTimerTimeout();
-	void CollectItem(CollectableType ItemType);
 	void UnlockDoubleJump();
 
 	void UpdateDirection(float MoveDirection);
 	void OnAttackAnimationEnd(bool bCompleted);
-	void OnRestartTimerTiemout();
-	void DeactivatePlayer();
+	void OnRestartTimerTimeout();
 	void QuitGame();
 
 	UFUNCTION()
 	void AttackBoxOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION(BlueprintCallable)
-	void EnableAttackCollisionBox(bool bEnabled);
 };

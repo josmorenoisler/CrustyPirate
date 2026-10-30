@@ -2,13 +2,15 @@
 
 
 #include "CollectableItem.h"
+#include "Components/CapsuleComponent.h"
+#include "PaperFlipbookComponent.h"
 #include "PlayerCharacter.h"
 
 // Sets default values
 ACollectableItem::ACollectableItem()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	// Nothing runs in Tick yet, so don't pay for it every frame. Turn this back on if Tick gets logic.
+	PrimaryActorTick.bCanEverTick = false;
 	CapsuleComp = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapsuleComp"));
 	SetRootComponent(CapsuleComp);
 
@@ -34,10 +36,9 @@ void ACollectableItem::OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor*
 {
 	APlayerCharacter* player = Cast<APlayerCharacter>(OtherActor);
 
-	if (player && player->bIsAlive)
+	if (player && player->IsAlive() && player->IsActive())
 	{
 		player->CollectItem(CollectableType);
 		Destroy();
 	}
 }
-

@@ -4,9 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Components/CapsuleComponent.h"
-#include "PaperFlipbookComponent.h"
 #include "CollectableItem.generated.h"
+
+class UCapsuleComponent;
+class UPaperFlipbookComponent;
 
 UENUM(BlueprintType)
 enum class CollectableType : uint8
@@ -20,24 +21,25 @@ UCLASS()
 class CRUSTYPIRATE_API ACollectableItem : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UCapsuleComponent* CapsuleComp;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UPaperFlipbookComponent* ItemFlipbook;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	CollectableType CollectableType;
-
+public:
 	ACollectableItem();
-
-	virtual void BeginPlay() override;
 
 	virtual void Tick(float DeltaTime) override;
 
+protected:
+	virtual void BeginPlay() override;
+
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCapsuleComponent> CapsuleComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UPaperFlipbookComponent> ItemFlipbook;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	CollectableType CollectableType;
+
 	UFUNCTION()
 	void OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
 };

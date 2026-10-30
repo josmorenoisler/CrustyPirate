@@ -2,6 +2,10 @@
 
 
 #include "Enemy.h"
+#include "PlayerCharacter.h"
+#include "Components/SphereComponent.h"
+#include "Components/TextRenderComponent.h"
+#include "Components/BoxComponent.h"
 
 
 AEnemy::AEnemy()
@@ -36,21 +40,17 @@ void AEnemy::Tick(float DeltaTime)
 
 	if (bIsAlive && FollowTarget && !bIsStunned)
 	{
-		float moveDirection = (FollowTarget->GetActorLocation().X - GetActorLocation().X) > 0.0f ? 1.0f : -1.0f;
 		if (ShouldMoveToTarget())
 		{
 			if (bCanMove)
 			{
-				FVector worldDirection = FVector(1.0f, 0.0f, 0.0f);
-				AddMovementInput(worldDirection, moveDirection);
+				const float moveDirection = (FollowTarget->GetActorLocation().X - GetActorLocation().X) > 0.0f ? 1.0f : -1.0f;
+				AddMovementInput(FVector::ForwardVector, moveDirection);
 			}
 		}
-		else
+		else if (FollowTarget->IsAlive())
 		{
-			if (FollowTarget->bIsAlive)
-			{
-				Attack();
-			}
+			Attack();
 		}
 	}
 }
@@ -75,7 +75,7 @@ void AEnemy::UpdateDirectionEnemy(float MoveDirection)
 	}
 }
 
-void AEnemy::UpdateHP(int NewHp)
+void AEnemy::UpdateHP(int32 NewHp)
 {
 	HitPoints = NewHp;
 
@@ -83,10 +83,10 @@ void AEnemy::UpdateHP(int NewHp)
 	HPText->SetText(FText::FromString(strHP));
 }
 
-void AEnemy::TakeDamage(int DamageAmount, float StunDuration)
+void AEnemy::TakeHit(int32 DamageAmount, float StunDuration)
 {
 	if (!bIsAlive) return;
-	
+
 	Stun(StunDuration);
 	UpdateHP(HitPoints - DamageAmount);
 
@@ -101,8 +101,12 @@ void AEnemy::TakeDamage(int DamageAmount, float StunDuration)
 		GetAnimInstance()->JumpToNode(FName("JumpDie"));
 
 		EnableAttackCollisionBox(false);
+
+		// Nothing left to do in Tick once dead, and the body is removed after the death animation
+		SetActorTickEnabled(false);
+		SetLifeSpan(DeathLifeSpanInSecs);
 	}
-	else 
+	else
 	{
 		GetAnimInstance()->JumpToNode(FName("JumpTakeHit"));
 	}
@@ -111,11 +115,8 @@ void AEnemy::TakeDamage(int DamageAmount, float StunDuration)
 void AEnemy::Stun(float DurationInSeconds)
 {
 	bIsStunned = true;
-	bool bIsTimerActive = GetWorldTimerManager().IsTimerActive(StunTimer);
 
-	if (bIsTimerActive)
-		GetWorldTimerManager().ClearTimer(StunTimer);
-
+	// SetTimer on a handle that is already running restarts it, so no need to clear it first
 	GetWorldTimerManager().SetTimer(StunTimer, this, &AEnemy::OnStunTimerTimeout, 1.0f, false, DurationInSeconds);
 
 	GetAnimInstance()->StopAllAnimationOverrides();
@@ -156,8 +157,7 @@ void AEnemy::OnAttackOverrideAnimEnd(bool bCompleted)
 
 void AEnemy::DetectorOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	APlayerCharacter* player = Cast<APlayerCharacter>(OtherActor);
-	if (player)
+	if (APlayerCharacter* player = Cast<APlayerCharacter>(OtherActor))
 	{
 		FollowTarget = player;
 	}
@@ -165,33 +165,25 @@ void AEnemy::DetectorOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 
 void AEnemy::DetectorOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	APlayerCharacter* player = Cast<APlayerCharacter>(OtherActor);
-	if (player)
+	if (Cast<APlayerCharacter>(OtherActor))
 	{
-		FollowTarget = NULL;
+		FollowTarget = nullptr;
 	}
 }
 
-bool AEnemy::ShouldMoveToTarget()
+bool AEnemy::ShouldMoveToTarget() const
 {
-	bool result = false;
+	if (!FollowTarget) return false;
 
-	if (FollowTarget)
-	{
-		float distToTarget = abs(FollowTarget->GetActorLocation().X - GetActorLocation().X);
-		result = distToTarget > StopDistToTarget;
-	}
-
-	return result;
+	const float distToTarget = FMath::Abs(FollowTarget->GetActorLocation().X - GetActorLocation().X);
+	return distToTarget > StopDistToTarget;
 }
 
 void AEnemy::AttackBoxOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	APlayerCharacter* player = Cast<APlayerCharacter>(OtherActor);
-
-	if (player)
+	if (APlayerCharacter* player = Cast<APlayerCharacter>(OtherActor))
 	{
-		player->TakeDamage(AttackDamage, AttackStunDuration);
+		player->TakeHit(AttackDamage, AttackStunDuration);
 	}
 }
 

@@ -4,11 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
-#include "Kismet/GameplayStatics.h"
 #include "CrustyPirateGameInstance.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class CRUSTYPIRATE_API UCrustyPirateGameInstance : public UGameInstance
@@ -16,20 +15,29 @@ class CRUSTYPIRATE_API UCrustyPirateGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	int PlayerHP = 100;
+	int32 GetPlayerHP() const { return PlayerHP; }
+	int32 GetDiamondsCollected() const { return DiamondsCollected; }
+	bool IsDoubleJumpUnlocked() const { return bIsDoubleJumpUnlocked; }
+	int32 GetCurrentLevelIndex() const { return CurrentLevelIndex; }
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	int DiamondsCollected = 0;
+	void SetPlayerHP(int32 NewHP);
+	void AddPlayerDiamonds(int32 Amount);
+	void SetDoubleJumpUnlocked(bool bUnlocked);
+	void ChangeLevel(int32 LevelIndex);
+	void RestartGame();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+private:
+	static constexpr int32 DefaultPlayerHP = 100;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	int32 PlayerHP = DefaultPlayerHP;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	int32 DiamondsCollected = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bIsDoubleJumpUnlocked = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	int CurrentlLevelIndex = 1;
-
-	void SetPlayerHP(int NewHP);
-	void AddPlayerDiamonds(int NewDiamonds);
-	void ChangeLevel(int LevelIndex);
-	void RestartGame();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	int32 CurrentLevelIndex = 1;
 };

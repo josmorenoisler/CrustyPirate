@@ -2,6 +2,9 @@
 
 
 #include "ExitLevelClass.h"
+#include "Components/BoxComponent.h"
+#include "PaperFlipbookComponent.h"
+#include "Sound/SoundBase.h"
 #include "PlayerCharacter.h"
 #include "CrustyPirateGameInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -9,8 +12,8 @@
 // Sets default values
 AExitLevelClass::AExitLevelClass()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	// Nothing runs in Tick yet, so don't pay for it every frame. Turn this back on if Tick gets logic.
+	PrimaryActorTick.bCanEverTick = false;
 	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComp"));
 	SetRootComponent(BoxComp);
 
@@ -38,31 +41,35 @@ void AExitLevelClass::Tick(float DeltaTime)
 
 void AExitLevelClass::OnWaitTimerTimeout()
 {
-	UCrustyPirateGameInstance* myGameInstance = Cast<UCrustyPirateGameInstance>(GetGameInstance());
-	if (myGameInstance)
+	if (UCrustyPirateGameInstance* myGameInstance = Cast<UCrustyPirateGameInstance>(GetGameInstance()))
 	{
-		myGameInstance->ChangeLevel(NextLevelIndex);
+		// An exit that points back to an earlier level means this was the last one, so start a fresh run
+		if (NextLevelIndex <= myGameInstance->GetCurrentLevelIndex())
+		{
+			myGameInstance->RestartGame();
+		}
+		else
+		{
+			myGameInstance->ChangeLevel(NextLevelIndex);
+		}
 	}
 }
 
 void AExitLevelClass::OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!bIsActive) return;
+
 	APlayerCharacter* player = Cast<APlayerCharacter>(OtherActor);
 
-	if (player && player->bIsAlive)
+	if (player && player->IsAlive())
 	{
-		if (bIsActive)
-		{
-			player->DeactivatePlayer();
-			bIsActive = false;
-			DoorFlipbook->SetPlayRate(1.0f);
-			DoorFlipbook->PlayFromStart();
+		player->DeactivatePlayer();
+		bIsActive = false;
+		DoorFlipbook->SetPlayRate(1.0f);
+		DoorFlipbook->PlayFromStart();
 
-			UGameplayStatics::PlaySound2D(GetWorld(), ExitDoorSound);
+		UGameplayStatics::PlaySound2D(GetWorld(), ExitDoorSound);
 
-			GetWorldTimerManager().SetTimer(WaitTimer, this, &AExitLevelClass::OnWaitTimerTimeout, 1.0f, false, WaitTimeInSecs); // set restart time to a variable
-
-		}
+		GetWorldTimerManager().SetTimer(WaitTimer, this, &AExitLevelClass::OnWaitTimerTimeout, 1.0f, false, WaitTimeInSecs);
 	}
 }
-

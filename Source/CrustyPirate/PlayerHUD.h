@@ -4,29 +4,30 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/TextBlock.h"
 #include "PlayerHUD.generated.h"
 
+class UTextBlock;
+
 /**
- * 
+ *
  */
 UCLASS()
 class CRUSTYPIRATE_API UPlayerHUD : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
 public:
-	UPROPERTY(EditAnywhere, meta = (BindWidget))
-	UTextBlock* HPText;
+	void SetHP(int32 NewHP);
+	void SetDiamonds(int32 NewDiamonds);
+	void SetLevel(int32 NewLevel);
 
-	UPROPERTY(EditAnywhere, meta = (BindWidget))
-	UTextBlock* DiamondsText;
+private:
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> HPText;
 
-	UPROPERTY(EditAnywhere, meta = (BindWidget))
-	UTextBlock* LevelText;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> DiamondsText;
 
-	void SetHP(int NewHP);
-	void SetDiamonds(int NewDiamonds);
-	void SetLevel(int NewLevel);
-
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> LevelText;
 };

@@ -3,12 +3,25 @@
 
 #include "PlayerCharacter.h"
 #include "Enemy.h"
-#include "Kismet/GameplayStatics.h"
+#include "PlayerHUD.h"
+#include "CrustyPirateGameInstance.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Controller.h"
+#include "Components/BoxComponent.h"
+#include "Components/InputComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputActionValue.h"
+#include "Sound/SoundBase.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 APlayerCharacter::APlayerCharacter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	// Nothing runs in Tick yet, so don't pay for it every frame. Turn this back on if Tick gets logic.
+	PrimaryActorTick.bCanEverTick = false;
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArmComponent->SetupAttachment(RootComponent);
 
@@ -39,8 +52,8 @@ void APlayerCharacter::BeginPlay()
 	MyGameInstance = Cast<UCrustyPirateGameInstance>(GetGameInstance());
 	if (MyGameInstance)
 	{
-		HitPoints = MyGameInstance->PlayerHP;
-		if (MyGameInstance->bIsDoubleJumpUnlocked)
+		HitPoints = MyGameInstance->GetPlayerHP();
+		if (MyGameInstance->IsDoubleJumpUnlocked())
 		{
 			UnlockDoubleJump();
 		}
@@ -53,8 +66,11 @@ void APlayerCharacter::BeginPlay()
 		{
 			PlayerHUDWidget->AddToPlayerScreen();
 			PlayerHUDWidget->SetHP(HitPoints);
-			PlayerHUDWidget->SetDiamonds(MyGameInstance->DiamondsCollected);
-			PlayerHUDWidget->SetLevel(MyGameInstance->CurrentlLevelIndex);
+			if (MyGameInstance)
+			{
+				PlayerHUDWidget->SetDiamonds(MyGameInstance->GetDiamondsCollected());
+				PlayerHUDWidget->SetLevel(MyGameInstance->GetCurrentLevelIndex());
+			}
 		}
 	}
 }
@@ -86,12 +102,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::Move(const FInputActionValue& value)
 {
-	float moveActionValue = value.Get<float>();
-
 	if (bIsAlive && bCanMove && !bIsStunned)
 	{
-		FVector directionVector = FVector(1.0f, 0.f, 0.0f);
-		AddMovementInput(directionVector, moveActionValue);
+		const float moveActionValue = value.Get<float>();
+		AddMovementInput(FVector::ForwardVector, moveActionValue);
 		UpdateDirection(moveActionValue);
 	}
 }
@@ -122,17 +136,24 @@ void APlayerCharacter::Attack(const FInputActionValue& value)
 	}
 }
 
-void APlayerCharacter::UpdateHP(int NewHp)
+void APlayerCharacter::UpdateHP(int32 NewHp)
 {
 	HitPoints = NewHp;
-	MyGameInstance->SetPlayerHP(HitPoints);
-	PlayerHUDWidget->SetHP(HitPoints);
+
+	if (MyGameInstance)
+	{
+		MyGameInstance->SetPlayerHP(HitPoints);
+	}
+
+	if (PlayerHUDWidget)
+	{
+		PlayerHUDWidget->SetHP(HitPoints);
+	}
 }
 
-void APlayerCharacter::TakeDamage(int DamageAmount, float StunDuration)
+void APlayerCharacter::TakeHit(int32 DamageAmount, float StunDuration)
 {
-	if (!bIsActive) return;
-	if (!bIsAlive) return;
+	if (!bIsActive || !bIsAlive) return;
 
 	Stun(StunDuration);
 	UpdateHP(HitPoints - DamageAmount);
@@ -149,27 +170,29 @@ void APlayerCharacter::TakeDamage(int DamageAmount, float StunDuration)
 
 		EnableAttackCollisionBox(false);
 
-		GetWorldTimerManager().SetTimer(RestartTimer, this, &APlayerCharacter::OnRestartTimerTiemout, 1.0f, false, 3.0f); // set restart time to a variable
+		GetWorldTimerManager().SetTimer(RestartTimer, this, &APlayerCharacter::OnRestartTimerTimeout, 1.0f, false, 3.0f); // set restart time to a variable
 	}
 	else
 	{
 		GetAnimInstance()->JumpToNode(FName("JumpTakeHit"), FName("CaptainStateMachine"));
 	}
-
 }
 
 void APlayerCharacter::OnAttackAnimationEnd(bool bCompleted)
 {
-	if (bIsActive && bIsActive)
+	if (bIsAlive && bIsActive)
 	{
 		bCanAttack = true;
 		bCanMove = true;
 	}
 }
 
-void APlayerCharacter::OnRestartTimerTiemout()
+void APlayerCharacter::OnRestartTimerTimeout()
 {
-	MyGameInstance->RestartGame();
+	if (MyGameInstance)
+	{
+		MyGameInstance->RestartGame();
+	}
 }
 
 void APlayerCharacter::DeactivatePlayer()
@@ -186,10 +209,9 @@ void APlayerCharacter::DeactivatePlayer()
 
 void APlayerCharacter::AttackBoxOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	AEnemy* enemy = Cast<AEnemy>(OtherActor);
-	if (enemy)
+	if (AEnemy* enemy = Cast<AEnemy>(OtherActor))
 	{
-		enemy->TakeDamage(AttackDamage, AttackStunDuration);
+		enemy->TakeHit(AttackDamage, AttackStunDuration);
 	}
 }
 
@@ -230,11 +252,8 @@ void APlayerCharacter::UpdateDirection(float MoveDirection)
 void APlayerCharacter::Stun(float DurationInSeconds)
 {
 	bIsStunned = true;
-	bool bIsTimerActive = GetWorldTimerManager().IsTimerActive(PlayerStunTimer);
 
-	if (bIsTimerActive)
-		GetWorldTimerManager().ClearTimer(PlayerStunTimer);
-
+	// SetTimer on a handle that is already running restarts it, so no need to clear it first
 	GetWorldTimerManager().SetTimer(PlayerStunTimer, this, &APlayerCharacter::OnStunTimerTimeout, 1.0f, false, DurationInSeconds);
 
 	GetAnimInstance()->StopAllAnimationOverrides();
@@ -247,26 +266,31 @@ void APlayerCharacter::OnStunTimerTimeout()
 	bIsStunned = false;
 }
 
-void APlayerCharacter::CollectItem(CollectableType CollectableType)
+void APlayerCharacter::CollectItem(CollectableType ItemType)
 {
 	UGameplayStatics::PlaySound2D(GetWorld(), ItemPickUpSound);
 
-	switch (CollectableType)
+	switch (ItemType)
 	{
 	case CollectableType::Diamond:
-		MyGameInstance->AddPlayerDiamonds(1);
-		PlayerHUDWidget->SetDiamonds(MyGameInstance->DiamondsCollected);
+		if (MyGameInstance)
+		{
+			MyGameInstance->AddPlayerDiamonds(1);
+			if (PlayerHUDWidget)
+			{
+				PlayerHUDWidget->SetDiamonds(MyGameInstance->GetDiamondsCollected());
+			}
+		}
 		break;
 	case CollectableType::HealthPotion:
 		UpdateHP(HitPoints + 25); //put 25 in a variable for the future
 		break;
 	case CollectableType::DoubleJumpUpgrade:
-		if (!MyGameInstance->bIsDoubleJumpUnlocked)
+		if (MyGameInstance)
 		{
-			MyGameInstance->bIsDoubleJumpUnlocked = true;
-			UnlockDoubleJump();
+			MyGameInstance->SetDoubleJumpUnlocked(true);
 		}
-		
+		UnlockDoubleJump();
 		break;
 	default:
 		break;

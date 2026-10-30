@@ -4,43 +4,46 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Components/BoxComponent.h"
-#include "PaperFlipbookComponent.h"
-#include "Sound/SoundBase.h"
 #include "Engine/TimerHandle.h"
 #include "ExitLevelClass.generated.h"
+
+class UBoxComponent;
+class UPaperFlipbookComponent;
+class USoundBase;
 
 UCLASS()
 class CRUSTYPIRATE_API AExitLevelClass : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UBoxComponent* BoxComp;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UPaperFlipbookComponent* DoorFlipbook;
+public:
+	AExitLevelClass();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	USoundBase* ExitDoorSound;
+	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int NextLevelIndex = 1;
+protected:
+	virtual void BeginPlay() override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UBoxComponent> BoxComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UPaperFlipbookComponent> DoorFlipbook;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> ExitDoorSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	int32 NextLevelIndex = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	float WaitTimeInSecs = 2.0f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool bIsActive = true;
 
 	FTimerHandle WaitTimer;
-
-	AExitLevelClass();
-
-	virtual void BeginPlay() override;
-
-	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION()
 	void OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

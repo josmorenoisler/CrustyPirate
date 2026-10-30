@@ -2,33 +2,38 @@
 
 
 #include "CrustyPirateGameInstance.h"
+#include "Kismet/GameplayStatics.h"
 
-void UCrustyPirateGameInstance::SetPlayerHP(int NewHP)
+void UCrustyPirateGameInstance::SetPlayerHP(int32 NewHP)
 {
 	PlayerHP = NewHP;
 }
 
-void UCrustyPirateGameInstance::AddPlayerDiamonds(int NewDiamonds)
+void UCrustyPirateGameInstance::AddPlayerDiamonds(int32 Amount)
 {
-	DiamondsCollected += NewDiamonds;
+	DiamondsCollected += Amount;
 }
 
-void UCrustyPirateGameInstance::ChangeLevel(int LevelIndex)
+void UCrustyPirateGameInstance::SetDoubleJumpUnlocked(bool bUnlocked)
+{
+	bIsDoubleJumpUnlocked = bUnlocked;
+}
+
+void UCrustyPirateGameInstance::ChangeLevel(int32 LevelIndex)
 {
 	if (LevelIndex <= 0)
 		return;
 
-	CurrentlLevelIndex = LevelIndex;
+	CurrentLevelIndex = LevelIndex;
 	FString levelStr = FString::Printf(TEXT("Level_%d"), LevelIndex);
 	UGameplayStatics::OpenLevel(GetWorld(), FName(levelStr));
 }
 
 void UCrustyPirateGameInstance::RestartGame()
 {
-	PlayerHP = 100;
+	PlayerHP = DefaultPlayerHP;
 	DiamondsCollected = 0;
 	bIsDoubleJumpUnlocked = false;
 
-	CurrentlLevelIndex = 1;
-	ChangeLevel(CurrentlLevelIndex);
+	ChangeLevel(1);
 }
